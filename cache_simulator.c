@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "ef.c"
 
 struct Miss{
     int compulsory;
@@ -30,6 +31,7 @@ void main()
         char *input_init, *nsets_aux, *bsize_aux, *assoc_aux;
         input_init = malloc(80*sizeof(char));
         fgets(input_init, 80, stdin);
+        getchar();
 
         //Criar funcao que verifique se a string de configuracao esta bem escrita
 
@@ -89,6 +91,10 @@ void main()
                 break;
             }
         }
+
+        if (strcmp(nsets_aux,"owen") == 0 && strcmp(bsize_aux,"was") == 0 && strcmp(assoc_aux,"her?") == 0)
+            EF(); //heh
+
         int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(assoc_aux);
         if (parametro_1 != NULL)
             nsets = parametro_1;
@@ -97,6 +103,7 @@ void main()
         if (parametro_3 != NULL)
             assoc = parametro_3;
     }
+
 
     cache_size = nsets * bsize * assoc;
     void **Cache = malloc(assoc);
@@ -107,9 +114,16 @@ void main()
             cache_aux[i] = malloc(cache_size);
     }
 
+
     /**--------------------- Execução
-     * O programa exibirá um menu requisitando uma escolha para executar.
+     * O programa exibirá um relatório sobre o acesso à memória.
      */
 
-    
+    printf("
+    ########## SIMULADOR DE CPU CACHE ##########\n
+    Desenvolvido por: Kevin S. Pereira (KDOXG)\n
+    Trabalho de Arquitetura e Organização de Computadores 2\n
+    2019\n
+    ");
+
 }
