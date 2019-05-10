@@ -24,6 +24,7 @@ void main()
     misses.capacity = 0;
     misses.conflict = 0;
     float miss_rate;
+    struct Cache **cache;
     int nsets = 256, bsize = 4, assoc = 1, cache_size;
     char *input_init, *input_file;
     FILE *input;
@@ -113,7 +114,7 @@ void main()
     }
     free(input_init);
     cache_size = nsets * bsize;
-    struct Cache **cache = malloc(assoc*sizeof(struct Cache));
+    cache = malloc(assoc*sizeof(struct Cache));
     {
         int i,j;
         for (i=0; i<assoc; i++)
@@ -135,7 +136,7 @@ void main()
     {
         int address, tag, index, offset,
         b_offset = log2(bsize), b_index = log2(nsets),
-        i, cache_count=0;
+        i, j, cache_count=0;
         char *endereco;
         ///Implementar leitura do arquivo aqui
         while(/*!EOF*/)
@@ -176,6 +177,10 @@ void main()
         }
         accesses = misses.capacity + misses.compulsory + misses.conflict + hits;
         miss_rate = 100 * (accesses-hits) / accesses;
+
+        for (i=0; i<assoc; i++)
+            free(cache[i]);
+        free(cache);
     }
 
     /**--------------------- Finalização
