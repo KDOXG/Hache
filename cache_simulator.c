@@ -40,12 +40,38 @@ void main()
     input_init = malloc(80*sizeof(char));
     getchar();
     fgets(input_init, 80, stdin);
+
+    /** Função:
+     * Detectar se a string passada para input_init poderá ser formatada corretamente.
+     */
+    {
+        short int i, count_1=0, count_2=0;
+        for (i=0; input_init[i] != '\0'; i++)
+        {
+            if (input_init[i] == ' ')
+                count_1++;
+            if (input_init[i] == ':')
+                count_2++;
+            if (count_1 == 2 && input_init[i+1] == '\0')
+                count_1++; //Jeito Go Horse de detectar o erro de passar um nome vazio para o arquivo~
+        }
+        if (count_1 != 2 || count_2 != 2)
+        {
+            printf("Erro: parâmetros passados de forma incorreta! Desligando...");
+            free(input_init);
+            return;
+        }
+        else
+            printf("\n\n");
+    }
+
+    /** Função:
+     * Extrair da string os números necessários para configurar a cache
+     * e o nome do arquivo para simulação.
+     */ 
     {
         char *nsets_aux, *bsize_aux, *assoc_aux;
-
-        //Criar funcao que verifique se a string de configuracao esta bem escrita
-
-        int i;
+        short int i;
         for (i=0; i<strlen(input_init); i++)
         {
             if (input_init[i] == ' ' && j == 0)
@@ -115,6 +141,9 @@ void main()
     free(input_init);
     cache_size = nsets * bsize;
     cache = malloc(assoc*sizeof(struct Cache));
+    /** Função:
+     * Inicializar a matriz recém alocada que simulará a memória cache.
+     */
     {
         int i,j;
         for (i=0; i<assoc; i++)
@@ -133,6 +162,10 @@ void main()
      * posteriormente na matriz criada pelo simulador na inicialização. Cada endereço será um número de 32 bits.
      * A saída será a quantidade de hits e misses ocorridos.
      */
+
+    /** Função:
+     * Executará a simulação de buscas de endereços em uma cache de nível 1.
+     */
     {
         int address, tag, index, offset,
         b_offset = log2(bsize), b_index = log2(nsets),
@@ -146,8 +179,6 @@ void main()
             address = atoi(endereco);
             tag = address >> (b_offset + b_index);
             index = address >> (b_offset & (pow(2,b_index)-1));
-            hit_flag = 0;
-            miss_flag = 0;
             for (i=0; i<assoc; i++)
             {
                 if (cache[i][b_index].bit_valid == 0)
