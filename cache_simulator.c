@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "ef.c"
 
 struct Miss{
@@ -9,29 +10,37 @@ struct Miss{
     int conflict;
 };
 
+struct Cache{
+    int tag;
+    char bit_valid;
+};
+
 void main()
 {
-    int hits = 0;
+    //Variaveis globais
+    int hits = 0, accesses = 0;
     struct Miss misses;
     misses.compulsory = 0;
     misses.capacity = 0;
     misses.conflict = 0;
     float miss_rate;
     int nsets = 256, bsize = 4, assoc = 1, cache_size;
-    char *input_file;
+    char *input_init, *input_file;
     FILE *input;
-
     
     /**--------------------- Inicialização
      * O programa deverá receber como entrada uma string no seguinte formato (legenda no .pdf do trabalho):
-    /// cache_simulator <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
-     * A saída será os valores passados pela string já formatados para suas respectivas variáveis.
+     * 
+     * cache_simulator <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
+     * 
+     * A saída será os valores passados pela string formatados para suas respectivas variáveis.
     /*/
+    
+    input_init = malloc(80*sizeof(char));
+    getchar();
+    fgets(input_init, 80, stdin);
     {
-        char *input_init, *nsets_aux, *bsize_aux, *assoc_aux;
-        input_init = malloc(80*sizeof(char));
-        fgets(input_init, 80, stdin);
-        getchar();
+        char *nsets_aux, *bsize_aux, *assoc_aux;
 
         //Criar funcao que verifique se a string de configuracao esta bem escrita
 
@@ -87,7 +96,6 @@ void main()
                 i = j+1;
                 input_file = malloc(strlen(input_init+i+1)+1);
                 strcpy(input_file,input_init+i+1);
-                free(input_init);
                 break;
             }
         }
@@ -103,19 +111,74 @@ void main()
         if (parametro_3 != NULL)
             assoc = parametro_3;
     }
-
-
-    cache_size = nsets * bsize * assoc;
-    void **Cache = malloc(assoc);
+    free(input_init);
+    cache_size = nsets * bsize;
+    struct Cache **cache = malloc(assoc*sizeof(struct Cache));
     {
-        char **cache_aux = (char**)Cache;
-        int i;
+        int i,j;
         for (i=0; i<assoc; i++)
-            cache_aux[i] = malloc(cache_size);
+        {
+            cache[i] = malloc(cache_size*sizeof(struct Cache));
+            for (j=0; j<cache_size; j++)
+            {
+                cache[i][j].tag = 0;
+                cache[i][j].bit_valid = 0;
+            }
+        }
     }
 
-
     /**--------------------- Execução
+     * O programa deverá receber uma série de valores de entrada, valores estes que serão os endereços procurados
+     * posteriormente na matriz criada pelo simulador na inicialização. Cada endereço será um número de 32 bits.
+     * A saída será a quantidade de hits e misses ocorridos.
+     */
+    {
+        int address, tag, index, offset,
+        b_offset = log2(bsize), b_index = log2(nsets),
+        i, cache_count=0;
+        char *endereco;
+        ///Implementar leitura do arquivo aqui
+        while(/*!EOF*/)
+        {
+            //endereco = endereco_do_arquivo;
+            ///Implementar incremento do ponteiro do arquivo aqui para poder pegar o proximo endereco no proximo loop
+            address = atoi(endereco);
+            tag = address >> (b_offset + b_index);
+            index = address >> (b_offset & (pow(2,b_index)-1));
+            hit_flag = 0;
+            miss_flag = 0;
+            for (i=0; i<assoc; i++)
+            {
+                if (cache[i][b_index].bit_valid == 0)
+                {
+                    cache[i][b_index].bit_valid = 1;
+                    cache[i][b_index].tag = tag;
+                    cache_count++;
+                    misses.compulsory++;
+                    break;
+                }
+                if (cache[i][b_index].tag == tag)
+                {
+                    hits++;
+                    break;
+                }
+            }
+
+            if (i == assoc)
+            {
+                i = rand() % assoc;
+                cache[i][b_index].tag = tag;
+                if (cache_count == cache_size)
+                    misses.capacity++;
+                else
+                    misses.conflict++;
+            }
+        }
+        accesses = misses.capacity + misses.compulsory + misses.conflict + hits;
+        miss_rate = 100 * (accesses-hits) / accesses;
+    }
+
+    /**--------------------- Finalização
      * O programa exibirá um relatório sobre o acesso à memória.
      */
 
@@ -124,6 +187,14 @@ void main()
     Desenvolvido por: Kevin S. Pereira (KDOXG)\n
     Trabalho de Arquitetura e Organização de Computadores 2\n
     2019\n
-    ");
+    \n");
 
+    printf("Tamanho da memória cache: %d bytes\n", cache_size * assoc);
+    printf("Quantidade de acessos: %d\n", accesses);
+    printf("Hits: %d\n", hits);
+    printf("Misses: %d\n", misses.capacity + misses.compulsory + misses.conflict);
+    printf("Misses compulsórios: %d\n", misses.compulsory);
+    printf("Misses de conflito: %d\n", misses.conflict);
+    printf("Misses de capacidade: %d\n", misses.capacity);
+    printf("Taxa de miss: %f%%", miss_rate);
 }
