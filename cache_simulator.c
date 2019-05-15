@@ -24,8 +24,8 @@ void main()
     misses.capacity = 0;
     misses.conflict = 0;
     float miss_rate;
-    struct Cache **cache;
-    int nsets = 256, bsize = 4, assoc = 1, cache_size;
+    struct Cache ***cache;
+    int nsets = 256, bsize = 4, assoc = 1;
     char *input_init, *input_file;
     FILE *input;
     
@@ -45,17 +45,19 @@ void main()
      * Detectar se a string passada para input_init poderá ser formatada corretamente.
      */
     {
-        short int i, count_1=0, count_2=0;
+        short int i, count_1=0, count_2=0, isFilenameEmpty=0;
         for (i=0; input_init[i] != '\0'; i++)
         {
             if (input_init[i] == ' ')
                 count_1++;
-            if (input_init[i] == ':')
+            if (count_1 == 1 && input_init[i] == ':')
                 count_2++;
-            if (count_1 == 2 && input_init[i+1] == '\0')
-                count_1++; //Jeito Go Horse de detectar o erro de passar um nome vazio para o arquivo~
+            if (count_1 == 2 && input_init[i+1] == '\0' && input_init[i+1] == '\n' && input_init[i+1] == ' ')
+                isFilenameEmpty = 1;
+            if (count_1 == 2 && input_init[i+1] != '\0' && input_init[i+1] != '\n' && input_init[i+1] != ' ')
+                break;
         }
-        if (count_1 != 2 || count_2 != 2)
+        if (isFilenameEmpty == 1 || count_1 != 2 || count_2 != 2)
         {
             printf("Erro: parâmetros passados de forma incorreta! Desligando...");
             free(input_init);
@@ -71,7 +73,7 @@ void main()
      */ 
     {
         char *nsets_aux, *bsize_aux, *assoc_aux;
-        short int i;
+        short int i, j=0, k=0;
         for (i=0; i<strlen(input_init); i++)
         {
             if (input_init[i] == ' ' && j == 0)
@@ -80,6 +82,7 @@ void main()
                     nsets_aux = input_init+i+1;
                 else
                     nsets_aux = NULL;
+
                 for (j=i+1; input_init[j] != ' '; j++)
                 {
                     if (input_init[j] == ':' && k == 0)
@@ -121,8 +124,8 @@ void main()
                     strcpy(assoc_aux,assoc_aux_temp);
                 }
                 i = j+1;
-                input_file = malloc(strlen(input_init+i+1)+1);
-                strcpy(input_file,input_init+i+1);
+                input_file = malloc(strlen((input_init+i))+1);
+                strcpy(input_file,input_init+i);
                 break;
             }
         }
@@ -137,22 +140,28 @@ void main()
             bsize = parametro_2;
         if (parametro_3 != NULL)
             assoc = parametro_3;
+        free(nsets_aux);
+        free(bsize_aux);
+        free(assoc_aux);
     }
     free(input_init);
-    cache_size = nsets * bsize;
-    cache = malloc(assoc*sizeof(struct Cache));
     /** Função:
      * Inicializar a matriz recém alocada que simulará a memória cache.
      */
+    cache = malloc(assoc*sizeof(struct Cache**));
     {
         int i,j;
         for (i=0; i<assoc; i++)
         {
-            cache[i] = malloc(cache_size*sizeof(struct Cache));
-            for (j=0; j<cache_size; j++)
+            cache[i] = malloc(nsets*sizeof(struct Cache*));
+            for (j=0; j<nsets; j++)
             {
-                cache[i][j].tag = 0;
-                cache[i][j].bit_valid = 0;
+                cache[i][j] = malloc(bsize*sizeof(struct Cache));
+                for (k=0; k<bsize; k++)
+                {
+                    cache[i][j][k].tag = 0;
+                    cache[i][j][k].bit_valid = 0;
+                }
             }
         }
     }
@@ -177,19 +186,21 @@ void main()
             //endereco = endereco_do_arquivo;
             ///Implementar incremento do ponteiro do arquivo aqui para poder pegar o proximo endereco no proximo loop
             address = atoi(endereco);
+            //Talvez, ao invés de usar atoi, fazer uma leitura binária do arquivo direto pra uma variável int
             tag = address >> (b_offset + b_index);
-            index = address >> (b_offset & (pow(2,b_index)-1));
+            index = (address >> (b_offset)) & (pow(2,b_index)-1);
+            offset = address & (pow(2,b_offset)-1);
             for (i=0; i<assoc; i++)
             {
-                if (cache[i][b_index].bit_valid == 0)
+                if (cache[i][index][offset].bit_valid == 0)
                 {
-                    cache[i][b_index].bit_valid = 1;
-                    cache[i][b_index].tag = tag;
+                    cache[i][index][offset].bit_valid = 1;
+                    cache[i][index][offset].tag = tag;
                     cache_count++;
                     misses.compulsory++;
                     break;
                 }
-                if (cache[i][b_index].tag == tag)
+                if (cache[i][index][offset].tag == tag)
                 {
                     hits++;
                     break;
@@ -199,8 +210,8 @@ void main()
             if (i == assoc)
             {
                 i = rand() % assoc;
-                cache[i][b_index].tag = tag;
-                if (cache_count == cache_size)
+                cache[i][index][offset].tag = tag;
+                if (cache_count == (nsets*bsize*assoc))
                     misses.capacity++;
                 else
                     misses.conflict++;
@@ -210,7 +221,11 @@ void main()
         miss_rate = 100 * (accesses-hits) / accesses;
 
         for (i=0; i<assoc; i++)
+        {
+            for (j=0; j<nsets; j++)
+                free(cache[i][j]);
             free(cache[i]);
+        }
         free(cache);
     }
 
@@ -225,7 +240,7 @@ void main()
     2019\n
     \n");
 
-    printf("Tamanho da memória cache: %d bytes\n", cache_size * assoc);
+    printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * assoc);
     printf("Quantidade de acessos: %d\n", accesses);
     printf("Hits: %d\n", hits);
     printf("Misses: %d\n", misses.capacity + misses.compulsory + misses.conflict);
