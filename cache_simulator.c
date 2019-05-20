@@ -12,6 +12,7 @@ struct Miss{
 
 struct Cache{
     int tag;
+    int policyControl;
     char bit_valid;
 };
 
@@ -19,6 +20,113 @@ typedef struct Endereco{
     int a;
     char nuu;
 }Address;
+
+void setReplacement(struct Cache **cache, char policy, int i, int assoc, int index, char flag)
+{
+    if (policy >> 0 == 0)//default
+        return;
+    if (policy >> 1 == 0)//LRU
+    {
+        if (cache[i][index].policyControl == assoc-1)
+            return;
+        cache[i][index].policyControl = assoc-1;
+        int j;
+        for (j=0; j<assoc; j++)
+        {
+            if (cache[j][index].policyControl != 0 && j != i)
+                cache[j][index].policyControl--;
+        }
+        return;
+    }
+    if (policy >> 2 == 0)//LFU
+    {
+        if (flag == 0b00000001 || flag == 0b00000010)//flags de miss
+            cache[i][index].policyControl = 0;
+        else
+            cache[i][index].policyControl++;
+        return;
+    }
+    if (policy >> 3 == 0)//FIFO
+    {
+        if (flag == 0b00000000)//flag de hit
+        {
+            return;
+        }
+        if (flag == 0b00000010)//flag de miss compulsorio
+        {
+            int j, pol=-1;
+            for (j=0; j<assoc && cache[j][index].bit_valid != 0; j++)
+                pol++;
+            cache[j-1][index].policyControl = pol;
+            return;
+        }
+        int j, id;
+        for (j=0; j<assoc; j++)
+            if (cache[j][index].policyControl == 0)
+                id = j;
+        cache[id][index].policyControl = assoc-1;
+        for (j=0; j<assoc; j++)
+            if (j != id)
+                cache[j][index].policyControl--;
+        return;
+    }
+    if (policy >> 4 == 0)//LIFO
+        return;
+    return;
+}
+
+int getReplacement(struct Cache **cache, char policy, int assoc, int index)
+{
+    if (policy >> 0 == 0)//default
+        return rand() % assoc;
+    if (policy >> 1 == 0)//LRU
+    {
+        int i, id, pol=assoc;
+        for (i=0; i<assoc; i++)
+        {
+            if (cache[i][index].policyControl < pol)
+            {
+                pol = cache[i][index].policyControl;
+                id = i;
+            }
+        }
+        return id;
+    }
+    if (policy >> 2 == 0)//LFU
+    {
+        int i, id, pol=0;
+        for (i=0; i<assoc; i++)
+        {
+            if (cache[i][index].policyControl > pol)
+                pol = cache[i][index].policyControl;
+        }
+        for (i=0; i<assoc; i++)
+        {
+            if (cache[i][index].policyControl < pol)
+            {
+                pol = cache[i][index].policyControl;
+                id = i;
+            }
+        }
+        return id;
+    }
+    if (policy >> 3 == 0)//FIFO
+    {
+        int i, id, pol=assoc;
+        for (i=0; i<assoc; i++)
+        {
+            if (cache[i][index].policyControl < pol)
+            {
+                pol = cache[i][index].policyControl;
+                id = i;
+            }
+        }
+        return id;
+    }
+    if (policy >> 4 == 0)//LIFO
+        return assoc-1;
+    return 0;
+}
 
 void main()
 {
@@ -31,24 +139,42 @@ void main()
     float miss_rate;
     struct Cache **cache;
     int nsets = 256, bsize = 4, assoc = 1;
-    char *input_init, *input_file;
+    char policy = '\0', *input_init;
     FILE *input;
 
     /**--------------------- Inicialização
-     * O programa deverá receber como entrada uma string no seguinte formato (legenda no .pdf do trabalho):
+     * O programa deverá receber como entrada uma string no seguinte formato:
      *
-     * cache_simulator <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
+     * <politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
      *
      * Exemplos:
      * cache_simulator 1024:4:1 test.bin
-     * cache_simulator 512:4:2 test.bin
-     * cache_simulator 256:4:4 test.bin
-     * cache_simulator 1:4:1024 test.bin
+     * LRU 512:4:2 test.bin
+     * FIFO 256:4:4 test.bin
+     * default 1:4:1024 test.bin
+     * 
+     * Legenda:
+     * <nsets_L1>: quantidade de conjuntos para armazenar na cache. Valor padrão: 256
+     * <bsize_L1>: tamanho do bloco de cada endereço da cache. Valor padrão: 4
+     * <assoc_L1>: nível de associatividade. Valor padrão: 1
+     * Caso os parâmetros inseridos não sejam números ou estejam vazios, o programa usará os valores padrões definidos anteriormente.
+     * (Para melhor aproveitamento do espaço da cache, sugerimos sempre usar números potências de 2.)
+     * 
+     * <politica_de_substituicao>: configurar a política de substituição em caches associativas.
+     * Os macros suportados para configurar esta opção são:
+     * "LRU" - Least Recently Used: substitui o elemento do conjunto que foi chamado a mais tempo
+     * "LFU" - Least Frequently Used: substitui o elemento do conjunto que foi chamado menos vezes
+     * "FIFO" - First In, First Out: substitui o elemento do conjunto que foi inserido a mais tempo
+     * "LIFO" - Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo
+     * "default" - usará a política de substituição padrão do programa, Random Replacement: substitui o elemento do conjunto escolhido aleatoriamente
+     * Se a associatividade for igual a 1 ou a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido será ignorado e o programa usará a opção "default".
      *
+     * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação.
+     * 
      * A saída será os valores passados pela string formatados para suas respectivas variáveis.
     /*/
 
-    getchar();
+    //getchar();
     input_init = malloc(80*sizeof(char));
     fgets(input_init, 80, stdin);
 
@@ -56,19 +182,21 @@ void main()
      * Detectar se a string passada para input_init poderá ser formatada corretamente.
      */
     {
-        short int i, count_1=0, count_2=0, isFilenameEmpty=0;
+        short int i, count_1=0, count_2=0, Error=0;
         for (i=0; input_init[i] != '\0'; i++)
         {
+            if (input_init[i] == ' ' && i == 0)
+                Error = 1;
             if (input_init[i] == ' ')
                 count_1++;
             if (count_1 == 1 && input_init[i] == ':')
                 count_2++;
-            if (count_1 == 2 && input_init[i+1] == '\0' && input_init[i+1] == '\n' && input_init[i+1] == ' ')
-                isFilenameEmpty = 1;
+            if (count_1 == 2 && (input_init[i+1] == '\0' || input_init[i+1] == '\n'))
+                Error = 1;
             if (count_1 == 2 && input_init[i+1] != '\0' && input_init[i+1] != '\n' && input_init[i+1] != ' ')
                 break;
         }
-        if (isFilenameEmpty == 1 || count_1 != 2 || count_2 != 2)
+        if (Error != 0 || count_1 != 2 || count_2 != 2)
         {
             printf("Erro: parâmetros passados de forma incorreta! Desligando...");
             free(input_init);
@@ -83,12 +211,14 @@ void main()
      * e o nome do arquivo para simulação.
      */
     {
-        char *nsets_aux, *bsize_aux, *assoc_aux;
+        char *policy_aux, *nsets_aux, *bsize_aux, *assoc_aux, *input_file;
         short int i, j=0, k=0;
+        policy_aux = input_init;
         for (i=0; i<strlen(input_init); i++)
         {
             if (input_init[i] == ' ' && j == 0)
             {
+                input_init[i] = '\0';
                 if (input_init[i+1] != ':')
                     nsets_aux = input_init+i+1;
                 else
@@ -118,10 +248,18 @@ void main()
                 input_file = (input_init+j+1);
                 for (k=0; input_init[k] != '\n'; k++);
                 input_init[k] = '\0';
-                input = fopen(input_file,"rb");
                 break;
             }
         }
+
+        if (strcmp(policy_aux,"LRU") == 0)
+            policy |= 1;
+        if (strcmp(policy_aux,"LFU") == 0)
+            policy |= 2;
+        if (strcmp(policy_aux,"FIFO") == 0)
+            policy |= 4;
+        if (strcmp(policy_aux,"LIFO") == 0)
+            policy |= 8;
 
         if (strcmp(nsets_aux,"owen") == 0 && strcmp(bsize_aux,"was") == 0 && strcmp(assoc_aux,"her?") == 0)
             EF(); //heh
@@ -133,6 +271,10 @@ void main()
             bsize = parametro_2;
         if (parametro_3 != NULL)
             assoc = parametro_3;
+        if (assoc == 1)
+            policy = '\0';
+
+        input = fopen(input_file,"rb");
     }
     free(input_init);
     if (input == NULL)
@@ -153,6 +295,7 @@ void main()
             for (j=0; j<nsets; j++)
             {
                 cache[i][j].tag = 0;
+                cache[i][j].policyControl = 0;
                 cache[i][j].bit_valid = 0;
             }
         }
@@ -190,19 +333,23 @@ void main()
                     cache[i][index].tag = tag;
                     cache_count++;
                     misses.compulsory++;
+                    setReplacement(cache,policy,i,assoc,index,0b00000010);
                     break;
                 }
                 if (cache[i][index].tag == tag)
                 {
                     hits++;
+                    setReplacement(cache,policy,i,assoc,index,0b00000000);
                     break;
                 }
             }
 
             if (i == assoc)
             {
-                i = rand() % assoc;
+
+                i = getReplacement(cache,policy,assoc,index);
                 cache[i][index].tag = tag;
+                setReplacement(cache,policy,i,assoc,index,0b00000001);
                 if (cache_count == (nsets*assoc))
                     misses.capacity++;
                 else
@@ -225,6 +372,46 @@ void main()
     printf("########## SIMULADOR DE CPU CACHE ##########\nDesenvolvido por: Kevin S. Pereira (KDOXG)\nTrabalho de Arquitetura e Organização de Computadores 2\nUniversidade Federal de Pelotas, 2019\n\n");
 
     printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * assoc);
+    printf("Mapeamento: ");
+    if (assoc == 1)
+        printf("Direto\n");
+    else
+    {
+        if (nsets != 1)
+            printf("Conjunto Associativo de %d vias\n", assoc);
+        else
+            printf("Totalmente Associativo\n");
+        printf("Política de substituição: ");
+        while(1)
+        {///Acho que esta foi a maior POG da minha vida o_O'
+            if (policy >> 0 == 0)
+            {
+                printf("Random Replacement (RR)\n");
+                break;
+            }
+            if (policy >> 1 == 0)
+            {
+                printf("Least Recently Used (LRU)\n");
+                break;
+            }
+            if (policy >> 2 == 0)
+            {
+                printf("Least Frequently Used (LFU)\n");
+                break;
+            }
+            if (policy >> 3 == 0)
+            {
+                printf("First In, First Out (FIFO)\n");
+                break;
+            }
+            if (policy >> 4 == 0)
+            {
+                printf("Last In, First Out (LIFO)\n");
+                break;
+            }
+            break;
+        }
+    }
     printf("Quantidade de acessos: %d\n", accesses);
     printf("Hits: %d\n", hits);
     printf("Misses: %d\n", misses.capacity + misses.compulsory + misses.conflict);
