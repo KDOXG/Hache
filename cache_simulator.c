@@ -152,14 +152,14 @@ void main()
      * LRU 512:4:2 test.bin
      * FIFO 256:4:4 test.bin
      * default 1:4:1024 test.bin
-     * 
+     *
      * Legenda:
      * <nsets_L1>: quantidade de conjuntos para armazenar na cache. Valor padrão: 256
      * <bsize_L1>: tamanho do bloco de cada endereço da cache. Valor padrão: 4
      * <assoc_L1>: nível de associatividade. Valor padrão: 1
      * Caso os parâmetros inseridos não sejam números ou estejam vazios, o programa usará os valores padrões definidos anteriormente.
      * (Para melhor aproveitamento do espaço da cache, sugerimos sempre usar números potências de 2.)
-     * 
+     *
      * <politica_de_substituicao>: configurar a política de substituição em caches associativas.
      * Os macros suportados para configurar esta opção são:
      * "LRU" - Least Recently Used: substitui o elemento do conjunto que foi chamado a mais tempo
@@ -170,11 +170,10 @@ void main()
      * Se a associatividade for igual a 1 ou a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido será ignorado e o programa usará a opção "default".
      *
      * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação.
-     * 
+     *
      * A saída será os valores passados pela string formatados para suas respectivas variáveis.
     /*/
 
-    //getchar();
     input_init = malloc(80*sizeof(char));
     fgets(input_init, 80, stdin);
 
@@ -261,8 +260,8 @@ void main()
         if (strcmp(policy_aux,"LIFO") == 0)
             policy |= 8;
 
-        if (strcmp(nsets_aux,"owen") == 0 && strcmp(bsize_aux,"was") == 0 && strcmp(assoc_aux,"her?") == 0)
-            EF(); //heh
+        if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(assoc_aux,"hash") == 0)
+            hache(); //Surpresinha~
 
         int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(assoc_aux);
         if (parametro_1 != NULL)
@@ -311,7 +310,7 @@ void main()
      * Executará a simulação de buscas de endereços em uma cache de nível 1.
      */
     {
-        int tag, index,/* offset,*/
+        int tag, index,
         b_offset = ceil(log2(bsize)), b_index = ceil(log2(nsets)),
         i, file_count=0, cache_count=0;
         Address address;
@@ -324,7 +323,6 @@ void main()
             fseek(input,file_count,SEEK_SET);
             tag = address.a >> (b_offset + b_index);
             index = (address.a >> (b_offset)) & (int)(pow(2,b_index)-1);
-            //offset = address.a & (pow(2,b_offset)-1);
             for (i=0; i<assoc; i++)
             {
                 if (cache[i][index].bit_valid == 0)
