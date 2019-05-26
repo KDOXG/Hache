@@ -2,23 +2,70 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include "lib_cache.c"
 
-struct Miss{
-    int compulsory;
-    int capacity;
-    int conflict;
-};
-
-struct Cache{
+struct Hache{
+    struct Hache *chain;
     int tag;
-    int policyControl;
-    char bit_valid;
+    char valid;
 };
 
-typedef struct Endereco{
-    int a;
-    char nuu;
-}Address;
+void initializeHache(struct Hache *hache, int nsets)
+{
+    int i;
+    for (i=0; i<nsets; i++)
+    {
+        hache[i].chain = NULL;
+        hache[i].tag = 0;
+        hache[i].valid = 0;
+    }
+}
+
+void deleteChain(struct Hache *hache)
+{
+    if (hache->chain != NULL)
+        deleteChain(hache->chain);
+    free(hache);
+}
+
+void deleteHache(struct Hache *hache, int nsets)
+{
+    int i;
+    for (i=0; i<nsets; i++)
+        if (hache[i].chain != NULL)
+            deleteChain(hache[i].chain);
+    free(hache);
+}
+
+void addChaining(struct Hache *hache, int id, int tag)
+{
+    if (hache[id].valid == 0)
+    {
+        hache[id].tag = tag;
+        hache[id].valid = 1;
+    }
+    else
+    {
+        struct Hache *chain_aux = hache[id].chain;
+        while (chain_aux != NULL)
+            chain_aux = chain_aux->chain;
+        chain_aux = malloc(sizeof(struct Hache));
+        chain_aux->chain = NULL;
+        chain_aux->tag = tag;
+        chain_aux->valid = 1;
+    }
+
+}
+
+int hash(int tag, int nsets)
+{
+    return (int)(pow(tag+1,2) / nsets) % nsets;
+}
+/*
+void setHandling(struct Hache *hache, char collision, int nsets, int limit, char flag)
+{
+    return hash();
+}
 
 void setReplacement(struct Cache **cache, char policy, int i, int assoc, int index, char flag)
 {
@@ -74,6 +121,22 @@ void setReplacement(struct Cache **cache, char policy, int i, int assoc, int ind
     return;
 }
 
+int getHandling(struct Hache *hache, char collision, int nsets, char flag)
+{
+    if (collision >> 0 == 0)//chaining
+    {
+
+    }
+    if (collision >> 1 == 0)//overflow
+    {
+
+    }
+    if (collision >> 2 == 0)//re-hash
+    {
+
+    }
+}
+
 int getReplacement(struct Cache **cache, char policy, int assoc, int index)
 {
     if (policy >> 0 == 0)//default
@@ -126,7 +189,7 @@ int getReplacement(struct Cache **cache, char policy, int assoc, int index)
         return assoc-1;
     return 0;
 }
-
+*/
 void hache()
 {
     //Variaveis globais
@@ -136,50 +199,49 @@ void hache()
     misses.capacity = 0;
     misses.conflict = 0;
     float miss_rate;
-    struct Cache **cache;
-    int nsets = 256, bsize = 4, assoc = 1;
-    char policy = '\0', *input_init;
+    struct Hache *hache;
+    int nsets = 256, bsize = 4, limit = 16;
+    char collision = '\0', *input_init;
     FILE *input;
 
     /**--------------------- Inicialização
      * O programa deverá receber como entrada uma string no seguinte formato:
      *
-     * <politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
+     * <tratamento_de_colisoes> <nsets_L1>:<bsize_L1>:<limit_L1> arquivo_de_entrada
      *
      * Exemplos:
-     * cache_simulator 1024:4:1 test.bin
-     * LRU 512:4:2 test.bin
-     * FIFO 256:4:4 test.bin
-     * default 1:4:1024 test.bin
+     * hache_simulator 1024:4:4 test.bin
+     * chaining 512:8:8 test.bin
+     * overflow 256:4:16 test.bin
+     * re-hash 1:2:256 test.bin
      *
      * Legenda:
-     * <nsets_L1>: quantidade de conjuntos para armazenar na cache. Valor padrão: 256
-     * <bsize_L1>: tamanho do bloco de cada endereço da cache. Valor padrão: 4
-     * <assoc_L1>: nível de associatividade. Valor padrão: 1
+     * <nsets_L1>: quantidade de conjuntos para armazenar na hache. Este número será dobrado toda vez que ou a hache lotar ou uma das listas encadeadas do Endereçamento Fechado atingir o limite. Valor padrão: 256
+     * <bsize_L1>: tamanho do bloco em bytes de cada endereço da hache. Valor padrão: 4
+     * <limit_L1>: Define a quantidade limite para uma lista encadeada no Endereçamento Fechado. Valor padrão: 16
      * Caso os parâmetros inseridos não sejam números ou estejam vazios, o programa usará os valores padrões definidos anteriormente.
-     * (Para melhor aproveitamento do espaço da cache, sugerimos sempre usar números potências de 2.)
      *
-     * <politica_de_substituicao>: configurar a política de substituição em caches associativas.
+     * <tratamento_de_colisoes>: escolher o algoritmo para tratar colisões de dados.
      * Os macros suportados para configurar esta opção são:
-     * "LRU" - Least Recently Used: substitui o elemento do conjunto que foi chamado a mais tempo
-     * "LFU" - Least Frequently Used: substitui o elemento do conjunto que foi chamado menos vezes
-     * "FIFO" - First In, First Out: substitui o elemento do conjunto que foi inserido a mais tempo
-     * "LIFO" - Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo
-     * "default" - usará a política de substituição padrão do programa, Random Replacement: substitui o elemento do conjunto escolhido aleatoriamente
-     * Se a associatividade for igual a 1 ou a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido será ignorado e o programa usará a opção "default".
+     * "chaining" - Endereçamento Fechado: insere o elemento no próximo ponteiro vazio disponível na posição retornada pela função hash
+     * "overflow" - Endereçamento Aberto Linear: insere o elemento no próximo espaço vazio a seguir da posição retornada pela função hash
+     * "re-hash" - Endereçamento Aberto Duplo: insere o elemento no próximo espaço vazio que a função hash encontrar pela posição incrementada com o valor retornado pela função hash auxiliar
+     * Se a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido será ignorado e o programa usará a opção "chaining". Este nome não pode ser vazio.
      *
-     * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação.
+     * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação. Este nome não pode ser vazio.
      *
      * A saída será os valores passados pela string formatados para suas respectivas variáveis.
     /*/
 
-    input_init = malloc(80*sizeof(char));
-    fgets(input_init, 80, stdin);
-
     /** Função:
      * Detectar se a string passada para input_init poderá ser formatada corretamente.
+     * Se for possível, extrair da string os números necessários para configurar a hache
+     * e o nome do arquivo para simulação.
      */
     {
+        input_init = malloc(80*sizeof(char));
+        fgets(input_init, 80, stdin);
+
         short int i, count_1=0, count_2=0, Error=0;
         for (i=0; input_init[i] != '\0'; i++)
         {
@@ -196,22 +258,16 @@ void hache()
         }
         if (Error != 0 || count_1 != 2 || count_2 != 2)
         {
-            printf("Erro: parâmetros passados de forma incorreta! Desligando...");
+            printf("Erro: parâmetros passados de forma incorreta! Retornando...");
             free(input_init);
             return;
         }
         else
-            printf("\n\n");
-    }
+            printf("\n");
 
-    /** Função:
-     * Extrair da string os números necessários para configurar a cache
-     * e o nome do arquivo para simulação.
-     */
-    {
-        char *policy_aux, *nsets_aux, *bsize_aux, *assoc_aux, *input_file;
-        short int i, j=0, k=0;
-        policy_aux = input_init;
+        char *collision_aux, *nsets_aux, *bsize_aux, *limit_aux, *input_file;
+        short int j=0, k=0;
+        collision_aux = input_init;
         for (i=0; i<strlen(input_init); i++)
         {
             if (input_init[i] == ' ' && j == 0)
@@ -237,9 +293,9 @@ void hache()
                     {
                         input_init[j] = '\0';
                         if (input_init[j+1] != ' ')
-                            assoc_aux = input_init+j+1;
+                            limit_aux = input_init+j+1;
                         else
-                            assoc_aux = NULL;
+                            limit_aux = NULL;
                     }
                 }
                 input_init[j] = '\0';
@@ -250,54 +306,39 @@ void hache()
             }
         }
 
-        if (strcmp(policy_aux,"LRU") == 0)
-            policy |= 1;
-        if (strcmp(policy_aux,"LFU") == 0)
-            policy |= 2;
-        if (strcmp(policy_aux,"FIFO") == 0)
-            policy |= 4;
-        if (strcmp(policy_aux,"LIFO") == 0)
-            policy |= 8;
+        if (strcmp(collision_aux,"chaining") == 0)
+            collision |= 0;
+        if (strcmp(collision_aux,"overflow") == 0)
+            collision |= 1;
+        if (strcmp(collision_aux,"re-hash") == 0)
+            collision |= 2;
 
-        if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(assoc_aux,"hash") == 0)
-            hache(); //Surpresinha~
+        if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(limit_aux,"cache") == 0)
+        {
+            free(input_init);
+            return;
+        }
 
-        int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(assoc_aux);
-        if (parametro_1 != NULL)
+        int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(limit_aux);
+        if (parametro_1 != 0)
             nsets = parametro_1;
-        if (parametro_2 != NULL)
+        if (parametro_2 != 0)
             bsize = parametro_2;
-        if (parametro_3 != NULL)
-            assoc = parametro_3;
-        if (assoc == 1)
-            policy = '\0';
+        if (parametro_3 != 0)
+            limit = parametro_3;
 
         input = fopen(input_file,"rb");
-    }
-    free(input_init);
-    if (input == NULL)
-    {
-        printf("Erro: não foi possível ler o arquivo! Desligando...");
-        return;
-    }
 
-    /** Função:
-     * Inicializar a matriz recém alocada que simulará a memória cache.
-     */
-    cache = malloc(assoc*sizeof(struct Cache*));
-    {
-        int i,j;
-        for (i=0; i<assoc; i++)
+        free(input_init);
+        if (input == NULL)
         {
-            cache[i] = malloc(nsets*sizeof(struct Cache));
-            for (j=0; j<nsets; j++)
-            {
-                cache[i][j].tag = 0;
-                cache[i][j].policyControl = 0;
-                cache[i][j].bit_valid = 0;
-            }
+            printf("Erro: não foi possível ler o arquivo! Retornando...");
+            return;
         }
     }
+
+    hache = malloc(nsets*sizeof(struct Hache));
+    initializeHache(hache,nsets);
 
     /**--------------------- Execução
      * O programa deverá receber uma série de valores de entrada, valores estes que serão os endereços procurados
@@ -306,13 +347,21 @@ void hache()
      */
 
     /** Função:
-     * Executará a simulação de buscas de endereços em uma cache de nível 1.
+     * Executará a simulação de buscas de endereços em uma hache de nível 1.
      */
     {
         int tag, index,
-        b_offset = ceil(log2(bsize)), b_index = ceil(log2(nsets)),
-        i, file_count=0, cache_count=0;
+        b_offset = ceil(log2(bsize)),/* b_index = ceil(log2(nsets)),*/
+        file_count=0, hache_count=0, chain_count, i, id, id_chain;
+        char flag = '\0';
+        if (collision >> 0 == 0)//chaining
+            flag |= 1;
+        if (collision >> 1 == 0)//overflow
+            flag |= 2;
+        if (collision >> 2 == 0)//re-hash
+            flag |= 4;
         Address address;
+        struct Hache *hache_aux, *chain_loop;
 
         while(fgetc(input) != EOF)
         {
@@ -320,8 +369,95 @@ void hache()
             fgets((char*)&address.a,5,input);
             file_count += 4;
             fseek(input,file_count,SEEK_SET);
-            tag = address.a >> (b_offset + b_index);
-            index = (address.a >> (b_offset)) & (int)(pow(2,b_index)-1);
+            tag = address.a >> b_offset;
+            index = hash(tag,nsets);
+
+            if (hache[index].valid & 1 == 0)//bit de validade
+            {
+                hache[index].valid |= 1;
+                hache[index].tag = tag;
+                hache_count++;
+                misses.compulsory++;
+                continue;
+            }
+
+            if (hache[index].tag == tag)
+            {
+                hits++;
+                continue;
+            }
+
+            if (collision >> 1 == 0)//chaining
+            {
+                chain_count = 0;
+                hache_aux = hache[index].chain;
+                while(hache_aux->chain != NULL)
+                {
+                    if (hache_aux->tag == tag)
+                        break;
+
+                    else
+                    {
+                        hache_aux = hache_aux->chain;
+                        chain_count++;
+                    }   
+                }
+                if (hache_aux->tag == tag)
+                {
+                    hits++;
+                    continue;
+                }
+                if (hache_aux->chain == NULL)
+                {
+                    if (chain_count != limit)
+                    {
+                        hache_aux->chain = malloc(sizeof(struct Hache));
+                        hache_aux->chain->chain = NULL;
+                        hache_aux->chain->tag = tag;
+                        hache_aux->chain->valid = 1;
+                        hache_count++;
+                        misses.conflict++;
+                        continue;
+                    }
+                    else
+                    {
+                        nsets *= 2;
+                        hache_aux = malloc(nsets*sizeof(struct Hache));
+                        initializeHache(hache_aux,nsets);
+                        for (i=0; i<(nsets/2); i++)
+                        {
+                            id = hash(hache[i].tag,nsets);
+                            addChaining(hache_aux,id,hache[i].tag);
+                            chain_loop = hache[i].chain;
+                            while(chain_loop != NULL)
+                            {
+                                id_chain = hash(chain_loop->tag,nsets);
+                                addChaining(hache_aux,id_chain,chain_loop->tag);
+                                chain_loop = chain_loop->chain;
+                            }
+                        }
+                        deleteHache(hache,nsets/2);
+                        hache = hache_aux;
+                        id = hash(tag,nsets);
+                        addChaining(hache,id,tag);
+                        if (hache_count == nsets*limit) 
+                            misses.capacity++;
+                        else
+                            misses.conflict++;
+                        hache_count++;
+                    }
+                }
+            }
+            
+            if (collision >> 1 == 0)//overflow
+            {
+
+            }
+            if (collision >> 2 == 0)//re-hash
+            {
+
+            }
+/*
             for (i=0; i<assoc; i++)
             {
                 if (cache[i][index].bit_valid == 0)
@@ -352,56 +488,58 @@ void hache()
                 else
                     misses.conflict++;
             }
+*/
         }
         accesses = misses.capacity + misses.compulsory + misses.conflict + hits;
         miss_rate = 100 * (accesses-hits) / accesses;
-
+        /*
         for (i=0; i<assoc; i++)
             free(cache[i]);
         free(cache);
         fclose(input);
+        */
     }
 
     /**--------------------- Finalização
      * O programa exibirá um relatório sobre o acesso à memória.
      */
 
-    printf("########## SIMULADOR DE CPU CACHE ##########\nDesenvolvido por: Kevin S. Pereira (KDOXG)\nTrabalho de Arquitetura e Organização de Computadores 2\nUniversidade Federal de Pelotas, 2019\n\n");
+    printf("########## SIMULADOR DE CPU HACHE ##########\nDesenvolvido por: Senhor K (KDOXG)\nProjeto paralelo e pessoal\n(e também bônus secreto do meu 2º trabalho de AOC2)\n\n");
 
-    printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * assoc);
-    printf("Mapeamento: ");
-    if (assoc == 1)
+    printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * limit);
+    printf("Mapeamento ");
+    if (limit == 1)
         printf("Direto\n");
     else
     {
         if (nsets != 1)
-            printf("Conjunto Associativo de %d vias\n", assoc);
+            printf("Conjunto-Associativo de %d vias\n", limit);
         else
             printf("Totalmente Associativo\n");
         printf("Política de substituição: ");
         while(1)
         {///Acho que esta foi a maior POG da minha vida o_O'
-            if (policy >> 0 == 0)
+            if (collision >> 0 == 0)
             {
                 printf("Random Replacement (RR)\n");
                 break;
             }
-            if (policy >> 1 == 0)
+            if (collision >> 1 == 0)
             {
                 printf("Least Recently Used (LRU)\n");
                 break;
             }
-            if (policy >> 2 == 0)
+            if (collision >> 2 == 0)
             {
                 printf("Least Frequently Used (LFU)\n");
                 break;
             }
-            if (policy >> 3 == 0)
+            if (collision >> 3 == 0)
             {
                 printf("First In, First Out (FIFO)\n");
                 break;
             }
-            if (policy >> 4 == 0)
+            if (collision >> 4 == 0)
             {
                 printf("Last In, First Out (LIFO)\n");
                 break;
@@ -417,5 +555,6 @@ void hache()
     printf("Misses de capacidade: %d\n", misses.capacity);
     printf("Taxa de miss: %.2f%%", miss_rate);
     printf("\nPrograma encerrado corretamente! Reiniciando...\n\n");
-    main();
+    
+    return;
 }

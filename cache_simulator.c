@@ -1,145 +1,14 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 #include "hache.c"
-
-struct Miss{
-    int compulsory;
-    int capacity;
-    int conflict;
-};
-
-struct Cache{
-    int tag;
-    int policyControl;
-    char bit_valid;
-};
-
-typedef struct Endereco{
-    int a;
-    char nuu;
-}Address;
-
-void setReplacement(struct Cache **cache, char policy, int i, int assoc, int index, char flag)
-{
-    if (policy >> 0 == 0)//default
-        return;
-    if (policy >> 1 == 0)//LRU
-    {
-        if (cache[i][index].policyControl == assoc-1)
-            return;
-        cache[i][index].policyControl = assoc-1;
-        int j;
-        for (j=0; j<assoc; j++)
-        {
-            if (cache[j][index].policyControl != 0 && j != i)
-                cache[j][index].policyControl--;
-        }
-        return;
-    }
-    if (policy >> 2 == 0)//LFU
-    {
-        if (flag == 0b00000001 || flag == 0b00000010)//flags de miss
-            cache[i][index].policyControl = 0;
-        else
-            cache[i][index].policyControl++;
-        return;
-    }
-    if (policy >> 3 == 0)//FIFO
-    {
-        if (flag == 0b00000000)//flag de hit
-        {
-            return;
-        }
-        if (flag == 0b00000010)//flag de miss compulsorio
-        {
-            int j, pol=-1;
-            for (j=0; j<assoc && cache[j][index].bit_valid != 0; j++)
-                pol++;
-            cache[j-1][index].policyControl = pol;
-            return;
-        }
-        int j, id;
-        for (j=0; j<assoc; j++)
-            if (cache[j][index].policyControl == 0)
-                id = j;
-        cache[id][index].policyControl = assoc-1;
-        for (j=0; j<assoc; j++)
-            if (j != id)
-                cache[j][index].policyControl--;
-        return;
-    }
-    if (policy >> 4 == 0)//LIFO
-        return;
-    return;
-}
-
-int getReplacement(struct Cache **cache, char policy, int assoc, int index)
-{
-    if (policy >> 0 == 0)//default
-        return rand() % assoc;
-    if (policy >> 1 == 0)//LRU
-    {
-        int i, id, pol=assoc;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl < pol)
-            {
-                pol = cache[i][index].policyControl;
-                id = i;
-            }
-        }
-        return id;
-    }
-    if (policy >> 2 == 0)//LFU
-    {
-        int i, id, pol=0;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl > pol)
-                pol = cache[i][index].policyControl;
-        }
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl < pol)
-            {
-                pol = cache[i][index].policyControl;
-                id = i;
-            }
-        }
-        return id;
-    }
-    if (policy >> 3 == 0)//FIFO
-    {
-        int i, id, pol=assoc;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl < pol)
-            {
-                pol = cache[i][index].policyControl;
-                id = i;
-            }
-        }
-        return id;
-    }
-    if (policy >> 4 == 0)//LIFO
-        return assoc-1;
-    return 0;
-}
 
 void main()
 {
     //Variaveis globais
-    int hits = 0, accesses = 0;
+    int hits, accesses;
     struct Miss misses;
-    misses.compulsory = 0;
-    misses.capacity = 0;
-    misses.conflict = 0;
     float miss_rate;
     struct Cache **cache;
     int nsets = 256, bsize = 4, assoc = 1;
-    char policy = '\0', *input_init;
+    char policy;
     FILE *input;
 
     /**--------------------- Inicialização
@@ -155,8 +24,8 @@ void main()
      *
      * Legenda:
      * <nsets_L1>: quantidade de conjuntos para armazenar na cache. Valor padrão: 256
-     * <bsize_L1>: tamanho do bloco de cada endereço da cache. Valor padrão: 4
-     * <assoc_L1>: nível de associatividade. Valor padrão: 1
+     * <bsize_L1>: tamanho do bloco em bytes de cada endereço da cache. Valor padrão: 4
+     * <assoc_L1>: nível de associatividade dos conjuntos. Valor padrão: 1
      * Caso os parâmetros inseridos não sejam números ou estejam vazios, o programa usará os valores padrões definidos anteriormente.
      * (Para melhor aproveitamento do espaço da cache, sugerimos sempre usar números potências de 2.)
      *
@@ -169,18 +38,32 @@ void main()
      * "default" - usará a política de substituição padrão do programa, Random Replacement: substitui o elemento do conjunto escolhido aleatoriamente
      * Se a associatividade for igual a 1 ou a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido será ignorado e o programa usará a opção "default".
      *
-     * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação.
+     * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação. Este nome não pode ser vazio.
      *
      * A saída será os valores passados pela string formatados para suas respectivas variáveis.
     /*/
 
-    input_init = malloc(80*sizeof(char));
-    fgets(input_init, 80, stdin);
-
     /** Função:
-     * Detectar se a string passada para input_init poderá ser formatada corretamente.
+     * Inicializar todas as variáveis globais declaradas no topo.
+     * Depois, detectar se a string passada para input_init poderá ser formatada corretamente.
+     * Se for possível, extrair da string os números necessários para configurar a cache
+     * e o nome do arquivo para simulação.
      */
+    Cache:
+    hits = 0;
+    accesses = 0;
+    misses.compulsory = 0;
+    misses.capacity = 0;
+    misses.conflict = 0;
+    nsets = 256;
+    bsize = 4;
+    assoc = 1;
+    policy = '\0';
+
     {
+        char *input_init = malloc(80*sizeof(char));
+        fgets(input_init, 80, stdin);
+        
         short int i, count_1=0, count_2=0, Error=0;
         for (i=0; input_init[i] != '\0'; i++)
         {
@@ -202,16 +85,10 @@ void main()
             return;
         }
         else
-            printf("\n\n");
-    }
+            printf("\n");
 
-    /** Função:
-     * Extrair da string os números necessários para configurar a cache
-     * e o nome do arquivo para simulação.
-     */
-    {
         char *policy_aux, *nsets_aux, *bsize_aux, *assoc_aux, *input_file;
-        short int i, j=0, k=0;
+        short int j=0, k=0;
         policy_aux = input_init;
         for (i=0; i<strlen(input_init); i++)
         {
@@ -261,33 +138,38 @@ void main()
             policy |= 8;
 
         if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(assoc_aux,"hash") == 0)
-            hache(); //Surpresinha~
+        {
+            free(input_init);
+            hache(); //Minha obra-prima!
+            goto Cache;
+        }
 
         int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(assoc_aux);
-        if (parametro_1 != NULL)
+        if (parametro_1 != 0)
             nsets = parametro_1;
-        if (parametro_2 != NULL)
+        if (parametro_2 != 0)
             bsize = parametro_2;
-        if (parametro_3 != NULL)
+        if (parametro_3 != 0)
             assoc = parametro_3;
         if (assoc == 1)
             policy = '\0';
 
         input = fopen(input_file,"rb");
-    }
-    free(input_init);
-    if (input == NULL)
-    {
-        printf("Erro: não foi possível ler o arquivo! Desligando...");
-        return;
+
+    	free(input_init);
+        if (input == NULL)
+        {
+            printf("Erro: não foi possível ler o arquivo! Desligando...");
+            return;
+        }
     }
 
     /** Função:
      * Inicializar a matriz recém alocada que simulará a memória cache.
      */
-    cache = malloc(assoc*sizeof(struct Cache*));
     {
         int i,j;
+        cache = malloc(assoc*sizeof(struct Cache*));
         for (i=0; i<assoc; i++)
         {
             cache[i] = malloc(nsets*sizeof(struct Cache));
@@ -418,5 +300,6 @@ void main()
     printf("Misses de capacidade: %d\n", misses.capacity);
     printf("Taxa de miss: %.2f%%", miss_rate);
     printf("\nPrograma encerrado corretamente! Reiniciando...\n\n");
-    main();
+
+    goto Cache;
 }
