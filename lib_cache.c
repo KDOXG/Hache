@@ -1,3 +1,12 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+/** -------- CACHE --------
+ * Funções para se usar na Cache.
+ */ 
+
 struct Cache{
     int tag;
     int policyControl;
@@ -120,4 +129,78 @@ int getReplacement(struct Cache **cache, char policy, int assoc, int index)
     if (policy >> 4 == 0)//LIFO
         return assoc-1;
     return 0;
+}
+
+/** -------- HACHE --------
+ * Funções para se usar na Hache
+ */
+
+struct Hache{
+    struct Hache *chain;
+    int tag;
+    char valid;
+};
+
+int hash(long long int tag, int nsets)
+{
+    tag += 1;
+    tag *= tag;
+    tag /= nsets;
+    tag %= nsets;
+    return tag;
+}
+/*
+int hash(long long int tag, int nsets)
+{
+    tag++;
+    long long int hashing = tag * tag;
+    hashing = hashing / nsets;
+    int modu = hashing % nsets;
+    return modu;
+}
+*/
+void initializeHache(struct Hache *hache, int nsets)
+{
+    int i;
+    for (i=0; i<nsets; i++)
+    {
+        hache[i].chain = NULL;
+        hache[i].tag = 0;
+        hache[i].valid = '\0';
+    }
+}
+
+void deleteChain(struct Hache *hache)
+{
+    if (hache->chain != NULL)
+        deleteChain(hache->chain);
+    free(hache);
+}
+
+void deleteHache(struct Hache *hache, int nsets)
+{
+    int i;
+    for (i=0; i<nsets; i++)
+        if (hache[i].chain != NULL)
+            deleteChain(hache[i].chain);
+    free(hache);
+}
+
+void addChaining(struct Hache *hache, int id, int tag)
+{
+    if (hache[id].valid == 0)
+    {
+        hache[id].tag = tag;
+        hache[id].valid = 1;
+    }
+    else
+    {
+        struct Hache *chain_aux = hache[id].chain;
+        while (chain_aux != NULL)
+            chain_aux = chain_aux->chain;
+        chain_aux = malloc(sizeof(struct Hache));
+        chain_aux->chain = NULL;
+        chain_aux->tag = tag;
+        chain_aux->valid = 1;
+    }
 }

@@ -1,66 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 #include "lib_cache.c"
-
-struct Hache{
-    struct Hache *chain;
-    int tag;
-    char valid;
-};
-
-void initializeHache(struct Hache *hache, int nsets)
-{
-    int i;
-    for (i=0; i<nsets; i++)
-    {
-        hache[i].chain = NULL;
-        hache[i].tag = 0;
-        hache[i].valid = 0;
-    }
-}
-
-void deleteChain(struct Hache *hache)
-{
-    if (hache->chain != NULL)
-        deleteChain(hache->chain);
-    free(hache);
-}
-
-void deleteHache(struct Hache *hache, int nsets)
-{
-    int i;
-    for (i=0; i<nsets; i++)
-        if (hache[i].chain != NULL)
-            deleteChain(hache[i].chain);
-    free(hache);
-}
-
-void addChaining(struct Hache *hache, int id, int tag)
-{
-    if (hache[id].valid == 0)
-    {
-        hache[id].tag = tag;
-        hache[id].valid = 1;
-    }
-    else
-    {
-        struct Hache *chain_aux = hache[id].chain;
-        while (chain_aux != NULL)
-            chain_aux = chain_aux->chain;
-        chain_aux = malloc(sizeof(struct Hache));
-        chain_aux->chain = NULL;
-        chain_aux->tag = tag;
-        chain_aux->valid = 1;
-    }
-
-}
-
-int hash(int tag, int nsets)
-{
-    return (int)(pow(tag+1,2) / nsets) % nsets;
-}
 /*
 void setHandling(struct Hache *hache, char collision, int nsets, int limit, char flag)
 {
@@ -211,6 +149,7 @@ void hache()
      *
      * Exemplos:
      * hache_simulator 1024:4:4 test.bin
+     * hache 4:1:4 byte.bin
      * chaining 512:8:8 test.bin
      * overflow 256:4:16 test.bin
      * re-hash 1:2:256 test.bin
@@ -313,12 +252,6 @@ void hache()
         if (strcmp(collision_aux,"re-hash") == 0)
             collision |= 2;
 
-        if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(limit_aux,"cache") == 0)
-        {
-            free(input_init);
-            return;
-        }
-
         int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(limit_aux);
         if (parametro_1 != 0)
             nsets = parametro_1;
@@ -353,12 +286,12 @@ void hache()
         int tag, index,
         b_offset = ceil(log2(bsize)),/* b_index = ceil(log2(nsets)),*/
         file_count=0, hache_count=0, chain_count, i, id, id_chain;
-        char flag = '\0';
+        char flag = '\0'; //Preciso lembrar para o quê eu queria esta variável .-. Acho que era a função para diferenciar qual o tipo de colisão o usuário escolheu, mas já adaptei pro chaining, então não acho que eu vou querer pros outros...
         if (collision >> 0 == 0)//chaining
             flag |= 1;
-        if (collision >> 1 == 0)//overflow
+        if (flag == '\0' && collision >> 1 == 0)//overflow
             flag |= 2;
-        if (collision >> 2 == 0)//re-hash
+        if (flag == '\0' && collision >> 2 == 0)//re-hash
             flag |= 4;
         Address address;
         struct Hache *hache_aux, *chain_loop;
@@ -372,7 +305,7 @@ void hache()
             tag = address.a >> b_offset;
             index = hash(tag,nsets);
 
-            if (hache[index].valid & 1 == 0)//bit de validade
+            if ((hache[index].valid << 7) >> 7 == 0)//bit de validade
             {
                 hache[index].valid |= 1;
                 hache[index].tag = tag;
@@ -387,34 +320,35 @@ void hache()
                 continue;
             }
 
-            if (collision >> 1 == 0)//chaining
+            if (collision >> 0 == 0)//chaining
             {
                 chain_count = 0;
-                hache_aux = hache[index].chain;
-                while(hache_aux->chain != NULL)
+                chain_loop = hache[index].chain;
+                while(chain_loop != NULL)
                 {
-                    if (hache_aux->tag == tag)
+                    if (chain_loop->tag == tag)
+                    {
+                        hits++;
                         break;
-
+                    }
                     else
                     {
-                        hache_aux = hache_aux->chain;
+                        chain_loop = chain_loop->chain;
                         chain_count++;
                     }   
                 }
-                if (hache_aux->tag == tag)
-                {
-                    hits++;
-                    continue;
-                }
-                if (hache_aux->chain == NULL)
+
+                if (chain_loop == NULL)
                 {
                     if (chain_count != limit)
                     {
-                        hache_aux->chain = malloc(sizeof(struct Hache));
-                        hache_aux->chain->chain = NULL;
-                        hache_aux->chain->tag = tag;
-                        hache_aux->chain->valid = 1;
+                        chain_loop = &hache[index];
+                        while(chain_loop->chain != NULL)
+                            chain_loop = chain_loop->chain;
+                        chain_loop->chain = malloc(sizeof(struct Hache));
+                        chain_loop->chain->chain = NULL;
+                        chain_loop->chain->tag = tag;
+                        chain_loop->chain->valid = 1;
                         hache_count++;
                         misses.conflict++;
                         continue;
@@ -447,6 +381,7 @@ void hache()
                         hache_count++;
                     }
                 }
+                continue;
             }
             
             if (collision >> 1 == 0)//overflow
@@ -554,7 +489,7 @@ void hache()
     printf("Misses de conflito: %d\n", misses.conflict);
     printf("Misses de capacidade: %d\n", misses.capacity);
     printf("Taxa de miss: %.2f%%", miss_rate);
-    printf("\nPrograma encerrado corretamente! Reiniciando...\n\n");
+    printf("\nPrograma encerrado corretamente! Retornando...\n\n");
     
     return;
 }
