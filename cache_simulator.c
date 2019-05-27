@@ -16,12 +16,6 @@ void main()
      *
      * <politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
      *
-     * Exemplos:
-     * cache_simulator 1024:4:1 test.bin
-     * LRU 512:4:2 test.bin
-     * FIFO 256:4:4 test.bin
-     * default 1:4:1024 test.bin
-     *
      * Legenda:
      * <nsets_L1>: quantidade de conjuntos para armazenar na cache. Valor padrão: 256
      * <bsize_L1>: tamanho do bloco em bytes de cada endereço da cache. Valor padrão: 4

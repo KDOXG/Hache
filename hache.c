@@ -19,13 +19,6 @@ void hache()
      *
      * <tratamento_de_colisoes> <nsets_L1>:<bsize_L1>:<limit_L1> arquivo_de_entrada
      *
-     * Exemplos:
-     * hache_simulator 1024:4:4 test.bin
-     * hache 4:1:4 byte.bin
-     * chaining 512:8:8 test.bin
-     * overflow 256:4:16 test.bin
-     * re-hash 1:2:256 test.bin
-     *
      * Legenda:
      * <nsets_L1>: quantidade de conjuntos para armazenar na hache. Este número será dobrado toda vez que ou a hache lotar ou uma das listas encadeadas do Endereçamento Fechado atingir o limite. Valor padrão: 256
      * <bsize_L1>: tamanho do bloco em bytes de cada endereço da hache. Valor padrão: 4
