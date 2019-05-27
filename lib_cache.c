@@ -97,12 +97,7 @@ int getReplacement(struct Cache **cache, char policy, int assoc, int index)
     }
     if (policy >> 2 == 0)//LFU
     {
-        int i, id, pol=0;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl > pol)
-                pol = cache[i][index].policyControl;
-        }
+        int i, id, pol=cache[0][index].policyControl;
         for (i=0; i<assoc; i++)
         {
             if (cache[i][index].policyControl < pol)
