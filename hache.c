@@ -21,6 +21,7 @@ void hache()
      *
      * Exemplos:
      * hache_simulator 1024:4:4 test.bin
+     * hache 4:1:4 byte.bin
      * chaining 512:8:8 test.bin
      * overflow 256:4:16 test.bin
      * re-hash 1:2:256 test.bin
@@ -287,7 +288,7 @@ void hache()
                         hache_aux[id].tag = hache[i].tag;
                         hache_aux[id].valid |= 0b00000001;
                     }
-                    deleteHache(hache,nsets/2);
+                    free(hache);
                     hache = hache_aux;
 
                     id = hash(tag,nsets);
@@ -300,6 +301,7 @@ void hache()
                 }
                 continue;
             }
+
             if (collision >> 2 == 0)//re-hash
             {
                 id = index;
@@ -344,7 +346,7 @@ void hache()
                         hache_aux[id].tag = hache[i].tag;
                         hache_aux[id].valid |= 0b00000001;
                     }
-                    deleteHache(hache,nsets/2);
+                    free(hache);
                     hache = hache_aux;
 
                     id = hash(tag,nsets);
@@ -360,6 +362,7 @@ void hache()
         accesses = misses.capacity + misses.compulsory + misses.conflict + hits;
         miss_rate = 100 * (accesses-hits) / accesses;
         deleteHache(hache,nsets);
+        fclose(input);
     }
 
     /**--------------------- Finalização
@@ -379,8 +382,8 @@ void hache()
     else if (collision >> 1 == 0)
         printf("Endereçamento Aberto Duplo (Re-hash)\n");
 
-    printf("Função hash: (Tag_Endereço + 1)² / Tamanho mod Tamanho\n");
-    printf("Função rehash: (hash(Tag_Endereço,Tamanho) + (1 + Tag_Endereço mod (Tamanho - 1))) mod Tamanho\n");
+    printf("Função hash(Tag_Endereço,Tamanho): (Tag_Endereço + 1)² / Tamanho mod Tamanho\n");
+    printf("Função rehash(Tag_Endereço,Tamanho): (hash(Tag_Endereço,Tamanho) + (1 + Tag_Endereço mod (Tamanho - 1))) mod Tamanho\n");
     printf("Quantidade de acessos: %d\n", accesses);
     printf("Hits: %d\n", hits);
     printf("Misses: %d\n", misses.capacity + misses.compulsory + misses.conflict);
