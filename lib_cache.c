@@ -144,16 +144,14 @@ int hash(long long int tag, int nsets)
     tag %= nsets;
     return tag;
 }
-/*
-int hash(long long int tag, int nsets)
+
+int rehash(int id, int tag, int nsets)
 {
-    tag++;
-    long long int hashing = tag * tag;
-    hashing = hashing / nsets;
-    int modu = hashing % nsets;
-    return modu;
+    int inc = 1 + (tag % (nsets - 1));
+    inc = (id + inc) % nsets;
+    return inc;
 }
-*/
+
 void initializeHache(struct Hache *hache, int nsets)
 {
     int i;
@@ -186,7 +184,7 @@ void addChaining(struct Hache *hache, int id, int tag)
     if (hache[id].valid == 0)
     {
         hache[id].tag = tag;
-        hache[id].valid = 1;
+        hache[id].valid |= 0b00000001;
     }
     else
     {

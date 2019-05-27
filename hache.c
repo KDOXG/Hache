@@ -1,133 +1,5 @@
 #include "lib_cache.c"
-/*
-void setHandling(struct Hache *hache, char collision, int nsets, int limit, char flag)
-{
-    return hash();
-}
 
-void setReplacement(struct Cache **cache, char policy, int i, int assoc, int index, char flag)
-{
-    if (policy >> 0 == 0)//default
-        return;
-    if (policy >> 1 == 0)//LRU
-    {
-        if (cache[i][index].policyControl == assoc-1)
-            return;
-        cache[i][index].policyControl = assoc-1;
-        int j;
-        for (j=0; j<assoc; j++)
-        {
-            if (cache[j][index].policyControl != 0 && j != i)
-                cache[j][index].policyControl--;
-        }
-        return;
-    }
-    if (policy >> 2 == 0)//LFU
-    {
-        if (flag == 0b00000001 || flag == 0b00000010)//flags de miss
-            cache[i][index].policyControl = 0;
-        else
-            cache[i][index].policyControl++;
-        return;
-    }
-    if (policy >> 3 == 0)//FIFO
-    {
-        if (flag == 0b00000000)//flag de hit
-        {
-            return;
-        }
-        if (flag == 0b00000010)//flag de miss compulsorio
-        {
-            int j, pol=-1;
-            for (j=0; j<assoc && cache[j][index].bit_valid != 0; j++)
-                pol++;
-            cache[j-1][index].policyControl = pol;
-            return;
-        }
-        int j, id;
-        for (j=0; j<assoc; j++)
-            if (cache[j][index].policyControl == 0)
-                id = j;
-        cache[id][index].policyControl = assoc-1;
-        for (j=0; j<assoc; j++)
-            if (j != id)
-                cache[j][index].policyControl--;
-        return;
-    }
-    if (policy >> 4 == 0)//LIFO
-        return;
-    return;
-}
-
-int getHandling(struct Hache *hache, char collision, int nsets, char flag)
-{
-    if (collision >> 0 == 0)//chaining
-    {
-
-    }
-    if (collision >> 1 == 0)//overflow
-    {
-
-    }
-    if (collision >> 2 == 0)//re-hash
-    {
-
-    }
-}
-
-int getReplacement(struct Cache **cache, char policy, int assoc, int index)
-{
-    if (policy >> 0 == 0)//default
-        return rand() % assoc;
-    if (policy >> 1 == 0)//LRU
-    {
-        int i, id, pol=assoc;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl < pol)
-            {
-                pol = cache[i][index].policyControl;
-                id = i;
-            }
-        }
-        return id;
-    }
-    if (policy >> 2 == 0)//LFU
-    {
-        int i, id, pol=0;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl > pol)
-                pol = cache[i][index].policyControl;
-        }
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl < pol)
-            {
-                pol = cache[i][index].policyControl;
-                id = i;
-            }
-        }
-        return id;
-    }
-    if (policy >> 3 == 0)//FIFO
-    {
-        int i, id, pol=assoc;
-        for (i=0; i<assoc; i++)
-        {
-            if (cache[i][index].policyControl < pol)
-            {
-                pol = cache[i][index].policyControl;
-                id = i;
-            }
-        }
-        return id;
-    }
-    if (policy >> 4 == 0)//LIFO
-        return assoc-1;
-    return 0;
-}
-*/
 void hache()
 {
     //Variaveis globais
@@ -149,7 +21,6 @@ void hache()
      *
      * Exemplos:
      * hache_simulator 1024:4:4 test.bin
-     * hache 4:1:4 byte.bin
      * chaining 512:8:8 test.bin
      * overflow 256:4:16 test.bin
      * re-hash 1:2:256 test.bin
@@ -284,15 +155,9 @@ void hache()
      */
     {
         int tag, index,
-        b_offset = ceil(log2(bsize)),/* b_index = ceil(log2(nsets)),*/
-        file_count=0, hache_count=0, chain_count, i, id, id_chain;
-        char flag = '\0'; //Preciso lembrar para o quê eu queria esta variável .-. Acho que era a função para diferenciar qual o tipo de colisão o usuário escolheu, mas já adaptei pro chaining, então não acho que eu vou querer pros outros...
-        if (collision >> 0 == 0)//chaining
-            flag |= 1;
-        if (flag == '\0' && collision >> 1 == 0)//overflow
-            flag |= 2;
-        if (flag == '\0' && collision >> 2 == 0)//re-hash
-            flag |= 4;
+        b_offset = ceil(log2(bsize)),
+        file_count=0, hache_count=0, count,
+        i, id, id_chain;
         Address address;
         struct Hache *hache_aux, *chain_loop;
 
@@ -307,7 +172,7 @@ void hache()
 
             if ((hache[index].valid << 7) >> 7 == 0)//bit de validade
             {
-                hache[index].valid |= 1;
+                hache[index].valid |= 0b00000001;
                 hache[index].tag = tag;
                 hache_count++;
                 misses.compulsory++;
@@ -322,7 +187,7 @@ void hache()
 
             if (collision >> 0 == 0)//chaining
             {
-                chain_count = 0;
+                count = 0;
                 chain_loop = hache[index].chain;
                 while(chain_loop != NULL)
                 {
@@ -334,13 +199,13 @@ void hache()
                     else
                     {
                         chain_loop = chain_loop->chain;
-                        chain_count++;
+                        count++;
                     }   
                 }
 
                 if (chain_loop == NULL)
                 {
-                    if (chain_count != limit)
+                    if (count != limit)
                     {
                         chain_loop = &hache[index];
                         while(chain_loop->chain != NULL)
@@ -348,7 +213,7 @@ void hache()
                         chain_loop->chain = malloc(sizeof(struct Hache));
                         chain_loop->chain->chain = NULL;
                         chain_loop->chain->tag = tag;
-                        chain_loop->chain->valid = 1;
+                        chain_loop->chain->valid |= 0b00000001;
                         hache_count++;
                         misses.conflict++;
                         continue;
@@ -372,12 +237,10 @@ void hache()
                         }
                         deleteHache(hache,nsets/2);
                         hache = hache_aux;
+
                         id = hash(tag,nsets);
                         addChaining(hache,id,tag);
-                        if (hache_count == nsets*limit) 
-                            misses.capacity++;
-                        else
-                            misses.conflict++;
+                        misses.capacity++;
                         hache_count++;
                     }
                 }
@@ -386,102 +249,138 @@ void hache()
             
             if (collision >> 1 == 0)//overflow
             {
+                for (id=index; id < nsets && (hache[id].valid << 7) >> 7 == 1; id++)
+                {
+                    if (hache[id].tag == tag)
+                    {
+                        hits++;
+                        break;
+                    }
+                }
+                if (id < nsets && hache[id].tag != tag)
+                {
+                    hache[id].tag = tag;
+                    hache[id].valid |= 0b00000001;
+                    misses.conflict++;
+                    hache_count++;
+                    continue;
+                }
+                if (id == nsets)
+                {
+                    nsets *= 2;
+                    hache_aux = malloc(nsets*sizeof(struct Hache));
+                    initializeHache(hache_aux,nsets);
+                    for (i=0; i<(nsets/2); i++)
+                    {
+                        if ((hache[i].valid << 7) >> 7 == 1)
+                            id = hash(hache[i].tag,nsets);
+                        else
+                            continue;
+                        if ((hache_aux[id].valid << 7) >> 7 != 1)
+                        {
+                            hache[id].tag = hache[i].tag;
+                            hache[id].valid |= 0b00000001;
+                            continue;
+                        }
+                        while ((hache_aux[id].valid << 7) >> 7 == 1)
+                            id++;
+                        hache_aux[id].tag = hache[i].tag;
+                        hache_aux[id].valid |= 0b00000001;
+                    }
+                    deleteHache(hache,nsets/2);
+                    hache = hache_aux;
 
+                    id = hash(tag,nsets);
+                    while ((hache[id].valid << 7) >> 7 == 1)
+                        id++;
+                    hache[id].tag = tag;
+                    hache[id].valid |= 0b00000001;
+                    misses.capacity++;
+                    hache_count++;
+                }
+                continue;
             }
             if (collision >> 2 == 0)//re-hash
             {
-
-            }
-/*
-            for (i=0; i<assoc; i++)
-            {
-                if (cache[i][index].bit_valid == 0)
+                id = index;
+                count = 0;
+                while (hache[id].tag != tag && (hache[id].valid << 7) >> 7 == 1 && count < nsets)
                 {
-                    cache[i][index].bit_valid = 1;
-                    cache[i][index].tag = tag;
-                    cache_count++;
-                    misses.compulsory++;
-                    setReplacement(cache,policy,i,assoc,index,0b00000010);
-                    break;
+                    id = rehash(id,tag,nsets);
+                    count++;
                 }
-                if (cache[i][index].tag == tag)
+                if (hache[id].tag == tag)
                 {
                     hits++;
-                    setReplacement(cache,policy,i,assoc,index,0b00000000);
-                    break;
+                    continue;
+                }
+                if (count < nsets)
+                {
+                    hache[id].tag = tag;
+                    hache[id].valid |= 0b00000001;
+                    misses.conflict++;
+                    hache_count++;
+                    continue;
+                }
+                else
+                {
+                    nsets *= 2;
+                    hache_aux = malloc(nsets*sizeof(struct Hache));
+                    initializeHache(hache_aux,nsets);
+                    for (i=0; i<(nsets/2); i++)
+                    {
+                        if ((hache[i].valid << 7) >> 7 == 1)
+                            id = hash(hache[i].tag,nsets);
+                        else
+                            continue;
+                        if ((hache_aux[id].valid << 7) >> 7 != 1)
+                        {
+                            hache[id].tag = hache[i].tag;
+                            hache[id].valid |= 0b00000001;
+                            continue;
+                        }
+                        while ((hache_aux[id].valid << 7) >> 7 == 1)
+                            id = rehash(id,hache[i].tag,nsets);
+                        hache_aux[id].tag = hache[i].tag;
+                        hache_aux[id].valid |= 0b00000001;
+                    }
+                    deleteHache(hache,nsets/2);
+                    hache = hache_aux;
+
+                    id = hash(tag,nsets);
+                    while ((hache[id].valid << 7) >> 7 == 1)
+                        id = rehash(id,tag,nsets);
+                    hache[id].tag = tag;
+                    hache[id].valid |= 0b00000001;
+                    misses.capacity++;
+                    hache_count++;
                 }
             }
-
-            if (i == assoc)
-            {
-
-                i = getReplacement(cache,policy,assoc,index);
-                cache[i][index].tag = tag;
-                setReplacement(cache,policy,i,assoc,index,0b00000001);
-                if (cache_count == (nsets*assoc))
-                    misses.capacity++;
-                else
-                    misses.conflict++;
-            }
-*/
         }
         accesses = misses.capacity + misses.compulsory + misses.conflict + hits;
         miss_rate = 100 * (accesses-hits) / accesses;
-        /*
-        for (i=0; i<assoc; i++)
-            free(cache[i]);
-        free(cache);
-        fclose(input);
-        */
+        deleteHache(hache,nsets);
     }
 
     /**--------------------- Finalização
      * O programa exibirá um relatório sobre o acesso à memória.
      */
 
-    printf("########## SIMULADOR DE CPU HACHE ##########\nDesenvolvido por: Senhor K (KDOXG)\nProjeto paralelo e pessoal\n(e também bônus secreto do meu 2º trabalho de AOC2)\n\n");
+    printf("########## SIMULADOR DE HACHE ##########\nDesenvolvido por: Senhor K (KDOXG)\nProjeto paralelo e pessoal\n(e também bônus secreto do meu 2º trabalho de AOC2)\n\n");
 
-    printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * limit);
-    printf("Mapeamento ");
-    if (limit == 1)
-        printf("Direto\n");
-    else
-    {
-        if (nsets != 1)
-            printf("Conjunto-Associativo de %d vias\n", limit);
-        else
-            printf("Totalmente Associativo\n");
-        printf("Política de substituição: ");
-        while(1)
-        {///Acho que esta foi a maior POG da minha vida o_O'
-            if (collision >> 0 == 0)
-            {
-                printf("Random Replacement (RR)\n");
-                break;
-            }
-            if (collision >> 1 == 0)
-            {
-                printf("Least Recently Used (LRU)\n");
-                break;
-            }
-            if (collision >> 2 == 0)
-            {
-                printf("Least Frequently Used (LFU)\n");
-                break;
-            }
-            if (collision >> 3 == 0)
-            {
-                printf("First In, First Out (FIFO)\n");
-                break;
-            }
-            if (collision >> 4 == 0)
-            {
-                printf("Last In, First Out (LIFO)\n");
-                break;
-            }
-            break;
-        }
-    }
+    printf("Objetivo da Hache:\nUma hache é uma tabela hash que contabiliza seus acessos de maneira similar a um simulador de memória cache (\"hash\" + \"cache\" = \"hache\")\nA hache contabiliza quantos acertos uma tabela hash construída com os parâmetros inseridos pelo usuario pode executar, e quantos erros ela pode cometer.\nOs erros são classificados em:\nConflito: quando um endereço é calculado para um novo dado mas tal endereço já está sendo ocupado por outro dado.\nUm novo endereço é recalculado de acordo com o tratamento de colisões escolhido.\nCapacidade: quando não há mais espaço disponível para novos dados.\nUma nova hache é alocada com o dobro do tamanho para suprir a quantidade.\nTais dados obtidos podem ser usados para fins estatísticos e análise de desempenho para uma tabela hash equivalente.\n\n");
+    
+    printf("Tamanho da hache: %d elementos\n", nsets);
+    printf("Tratamento de colisões: ");
+    if (collision >> 0 == 0)
+        printf("Endereçamento Fechado (Chaining) com limite %d\n", limit);
+    else if (collision >> 1 == 0)
+        printf("Endereçamento Aberto Linear (Overflow)\n");
+    else if (collision >> 1 == 0)
+        printf("Endereçamento Aberto Duplo (Re-hash)\n");
+
+    printf("Função hash: (Tag_Endereço + 1)² / Tamanho mod Tamanho\n");
+    printf("Função rehash: (hash(Tag_Endereço,Tamanho) + (1 + Tag_Endereço mod (Tamanho - 1))) mod Tamanho\n");
     printf("Quantidade de acessos: %d\n", accesses);
     printf("Hits: %d\n", hits);
     printf("Misses: %d\n", misses.capacity + misses.compulsory + misses.conflict);
