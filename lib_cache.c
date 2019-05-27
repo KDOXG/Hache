@@ -32,11 +32,11 @@ void setReplacement(struct Cache **cache, char policy, int i, int assoc, int ind
     {
         if (cache[i][index].policyControl == assoc-1)
             return;
+        int j, id=cache[i][index].policyControl;
         cache[i][index].policyControl = assoc-1;
-        int j;
         for (j=0; j<assoc; j++)
         {
-            if (cache[j][index].policyControl != 0 && j != i)
+            if (cache[j][index].bit_valid != 0 && cache[j][index].policyControl > id && j != i)
                 cache[j][index].policyControl--;
         }
         return;
