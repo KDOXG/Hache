@@ -80,7 +80,7 @@ void main()
         }
         if (Error != 0 || count_1 != 2 || count_2 != 2)
         {
-            printf("Erro: parâmetros passados de forma incorreta! Desligando...");
+            printf("Erro: parâmetros passados de forma incorreta! Desligando...\n\n");
             free(input_init);
             return;
         }
@@ -159,7 +159,7 @@ void main()
     	free(input_init);
         if (input == NULL)
         {
-            printf("Erro: não foi possível ler o arquivo! Desligando...");
+            printf("Erro: não foi possível ler o arquivo! Desligando...\n\n");
             return;
         }
     }
