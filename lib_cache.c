@@ -200,7 +200,6 @@ void addChaining(struct Hache *hache, int id, int tag)
 
 int help(char *input){
     if(strcmp(input, "help\n") == 0){
-        //printf("I need somebody\n\n");
         printf(" ** Simulador de Cache - Kevin e Frederico **\n");
         printf("O simulador de cache deve ser inicializado da seguinte forma:\n");
         printf("\t<politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada\n\n");
