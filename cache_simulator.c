@@ -59,9 +59,12 @@ void main()
         char *input_init = malloc(80*sizeof(char));
         fgets(input_init, 80, stdin);
 
-        /// Função de ajuda >> sobrepoem o teste de parametros passados corretamente
         if(strstr(input_init, "help") == input_init){
             if(help(input_init) == 0)
+                {
+                    free(input_init);
+                    goto Cache;
+                }
                 goto Cache;
         }
 

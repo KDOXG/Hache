@@ -204,9 +204,9 @@ int help(char *input){
         printf(" ** Simulador de Cache - Kevin e Frederico **\n");
         printf("O simulador de cache deve ser inicializado da seguinte forma:\n");
         printf("\t<politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada\n\n");
-        printf("Para saber mais sobre um determinado parametro digite \"help\" seguido por:\n");
+        printf("Para saber mais sobre um determinado parâmetro digite \"help\" seguido por:\n");
         printf("* <politica_de_substituicao> ou <politica>\n* <nsets_L1> ou <nsets>\n* <bsize_L1> ou <bsize>\n* <assoc_L1> ou <assoc>\n* <arquivo_de_entrada> ou <arquivo>\n  Ex: \"help nsets_L1\"\n");
-        printf("Mais informacoes sobre o funcionamento do simulador consulte o relatorio que pode ser encontrado em:\n>> https://docs.google.com/document/d/19z8SMnCyogkHqkf-lL7GCloY9AIuRedfyD6UEoUtu80/edit?usp=sharing\n\n");
+        printf("Mais informações sobre o funcionamento do simulador consulte o relatório que pode ser encontrado em:\n>> http://bit.ly/2Xayout\n\n");
         return 0;
     }
     else if(strcmp(input, "help nsets_L1\n") == 0 || strcmp(input, "help nsets\n") == 0){
@@ -235,16 +235,16 @@ int help(char *input){
         else if(strstr(input, "LIFO"))
             printf("Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo\n\n");
         else if(strstr(input, "RR") || strstr(input, "Random Replacement"))
-            printf("Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo\n\n");
+            printf("Random Replacement: substitui o elemento do conjunto escolhido aleatoriamente\n\n");
         else{
-            printf("Configurar a politica de substituicao em caches associativas.\nOs macros suportados para configurar esta opcao sao: 'LRU', 'LFU', 'FIFO' e 'LIFO'.\n");
-            printf("O macro padrao quando nao especificado sera 'Random Replacement' ou 'RR'.\n");
-            printf("Se a associatividade for igual a 1 ou a palavra inserida nao pertencer a estes macros, qualquer parametro inserido sera ignorado e o programa usara a opcao padrao.\n\n");
-            printf("Para saber mais sobre uma politica de substituicao digite \"help politica\" ou \"help politica_de_substituicao\" seguido por uma da opcoes.\n\n");
+            printf("Configurar a politica de substituição em caches associativas.\nOs macros suportados para configurar esta opção são: 'LRU', 'LFU', 'FIFO' e 'LIFO'.\n");
+            printf("O macro padrão, quando nenhum especificado for usado, será 'Random Replacement' ou 'RR'.\n");
+            printf("Se a associatividade for igual a 1 ou a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido sera ignorado e o programa usara a opção padrão.\n\n");
+            printf("Para saber mais sobre uma politica de substituição digite \"help politica\" ou \"help politica_de_substituicao\" seguido por uma da opções.\n\n");
         }
-
+ 
         return 0;
     }
-
+ 
     return 1;
 }
