@@ -5,7 +5,7 @@
 
 /** -------- CACHE --------
  * Funções para se usar na Cache.
- */ 
+ */
 
 struct Cache{
     int tag;
@@ -196,4 +196,55 @@ void addChaining(struct Hache *hache, int id, int tag)
         chain_aux->tag = tag;
         chain_aux->valid = 1;
     }
+}
+
+int help(char *input){
+    if(strcmp(input, "help\n") == 0){
+        //printf("I need somebody\n\n");
+        printf(" ** Simulador de Cache - Kevin e Frederico **\n");
+        printf("O simulador de cache deve ser inicializado da seguinte forma:\n");
+        printf("\t<politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada\n\n");
+        printf("Para saber mais sobre um determinado parametro digite \"help\" seguido por:\n");
+        printf("* <politica_de_substituicao> ou <politica>\n* <nsets_L1> ou <nsets>\n* <bsize_L1> ou <bsize>\n* <assoc_L1> ou <assoc>\n* <arquivo_de_entrada> ou <arquivo>\n  Ex: \"help nsets_L1\"\n");
+        printf("Mais informacoes sobre o funcionamento do simulador consulte o relatorio que pode ser encontrado em:\n>> https://docs.google.com/document/d/19z8SMnCyogkHqkf-lL7GCloY9AIuRedfyD6UEoUtu80/edit?usp=sharing\n\n");
+        return 0;
+    }
+    else if(strcmp(input, "help nsets_L1\n") == 0 || strcmp(input, "help nsets\n") == 0){
+        printf("Quantidade de conjuntos para armazenar na cache.\nDefault: 256\n\n");
+        return 0;
+    }
+    else if(strcmp(input, "help bsize_L1\n") == 0 || strcmp(input, "help bsize\n") == 0){
+        printf("Tamanho do bloco em bytes de cada endereço da cache.\nDefault: 4\n\n");
+        return 0;
+    }
+    else if(strcmp(input, "help assoc_L1\n") == 0 || strcmp(input, "help assoc\n") == 0){
+        printf("Nivel de associatividade dos conjuntos.\nDefault: 1\n\n");
+        return 0;
+    }
+    else if((strcmp(input, "help arquivo_de_entrada\n") == 0) || (strcmp(input, "help arquivo\n") == 0)){
+        printf("Nome do arquivo de entrada que armazena todos os enderecos divididos em 4 bytes para a simulacao. Este nome nao pode ser vazio.\n\n");
+        return 0;
+    }
+    else if((strcmp(input, "help politica_de_substituicao\n") == 0) || (strstr(input, "help politica_de_substituicao ") == input) || (strstr(input, "help politica ") == input) || ((strcmp(input, "help politica\n") == 0))){
+        if(strstr(input, "LRU"))
+            printf("Least Recently Used: substitui o elemento do conjunto que foi chamado a mais tempo\n\n");
+        else if(strstr(input, "LFU"))
+            printf("Least Frequently Used: substitui o elemento do conjunto que foi chamado menos vezes\n\n");
+        else if(strstr(input, "FIFO"))
+            printf("First In, First Out: substitui o elemento do conjunto que foi inserido a mais tempo\n\n");
+        else if(strstr(input, "LIFO"))
+            printf("Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo\n\n");
+        else if(strstr(input, "RR") || strstr(input, "Random Replacement"))
+            printf("Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo\n\n");
+        else{
+            printf("Configurar a politica de substituicao em caches associativas.\nOs macros suportados para configurar esta opcao sao: 'LRU', 'LFU', 'FIFO' e 'LIFO'.\n");
+            printf("O macro padrao quando nao especificado sera 'Random Replacement' ou 'RR'.\n");
+            printf("Se a associatividade for igual a 1 ou a palavra inserida nao pertencer a estes macros, qualquer parametro inserido sera ignorado e o programa usara a opcao padrao.\n\n");
+            printf("Para saber mais sobre uma politica de substituicao digite \"help politica\" ou \"help politica_de_substituicao\" seguido por uma da opcoes.\n\n");
+        }
+
+        return 0;
+    }
+
+    return 1;
 }

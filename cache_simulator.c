@@ -57,11 +57,17 @@ void main()
     {
         char *input_init = malloc(80*sizeof(char));
         fgets(input_init, 80, stdin);
-        
+
+        /// Função de ajuda >> sobrepoem o teste de parametros passados corretamente
+        if(strstr(input_init, "help") == input_init){
+            if(help(input_init) == 0)
+                goto Cache;
+        }
+
         short int i, count_1=0, count_2=0, Error=0;
         for (i=0; input_init[i] != '\0'; i++)
         {
-            if (input_init[i] == ' ' && i == 0)
+            if (input_init[0] == ' ')
                 Error = 1;
             if (input_init[i] == ' ')
                 count_1++;
@@ -243,7 +249,7 @@ void main()
      * O programa exibirá um relatório sobre o acesso à memória.
      */
 
-    printf("########## SIMULADOR DE CPU CACHE ##########\nDesenvolvido por: Kevin S. Pereira (KDOXG)\nTrabalho de Arquitetura e Organização de Computadores 2\nUniversidade Federal de Pelotas, 2019\n\n");
+    printf("########## SIMULADOR DE CPU CACHE ##########\nDesenvolvido por: Kevin S. Pereira (KDOXG) e Frederico P. Antunes\nTrabalho de Arquitetura e Organização de Computadores 2\nUniversidade Federal de Pelotas, 2019\n\n");
 
     printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * assoc);
     printf("Mapeamento: ");
