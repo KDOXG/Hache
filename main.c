@@ -1,18 +1,6 @@
-#include <time.h>
 #include "hache.c"
 
-void wait(int seconds)
-{
-    int aux=0;
-    int n = seconds * 1024;
-    clock_t start_time = clock();
-    while (clock() < start_time + n)
-    {
-        aux=aux;
-    }
-}
-
-void main()
+int main()
 {
     //Variaveis globais
     int hits, accesses;
@@ -27,24 +15,6 @@ void main()
      * O programa deverá receber como entrada uma string no seguinte formato:
      *
      * <politica_de_substituicao> <nsets_L1>:<bsize_L1>:<assoc_L1> arquivo_de_entrada
-     *
-     * Legenda:
-     * <nsets_L1>: quantidade de conjuntos para armazenar na cache. Valor padrão: 256
-     * <bsize_L1>: tamanho do bloco em bytes de cada endereço da cache. Valor padrão: 4
-     * <assoc_L1>: nível de associatividade dos conjuntos. Valor padrão: 1
-     * Caso os parâmetros inseridos não sejam números ou estejam vazios, o programa usará os valores padrões definidos anteriormente.
-     * (Para melhor aproveitamento do espaço da cache, sugerimos sempre usar números potências de 2.)
-     *
-     * <politica_de_substituicao>: configurar a política de substituição em caches associativas.
-     * Os macros suportados para configurar esta opção são:
-     * "LRU" - Least Recently Used: substitui o elemento do conjunto que foi chamado a mais tempo
-     * "LFU" - Least Frequently Used: substitui o elemento do conjunto que foi chamado menos vezes
-     * "FIFO" - First In, First Out: substitui o elemento do conjunto que foi inserido a mais tempo
-     * "LIFO" - Last In, First Out: substitui o elemento do conjunto que foi inserido a menos tempo
-     * "default" - usará a política de substituição padrão do programa, Random Replacement: substitui o elemento do conjunto escolhido aleatoriamente
-     * Se a associatividade for igual a 1 ou a palavra inserida não pertencer a estes macros, qualquer parâmetro inserido será ignorado e o programa usará a opção "default".
-     *
-     * arquivo_de_entrada: nome do arquivo de entrada que armazena todos os endereços divididos em 4 bytes para a simulação. Este nome não pode ser vazio.
      *
      * A saída será os valores passados pela string formatados para suas respectivas variáveis.
     /*/
@@ -86,10 +56,10 @@ void main()
         }
         if (Error != 0 || count_1 != 2 || count_2 != 2)
         {
-            printf("Erro: parâmetros passados de forma incorreta! Desligando...");
+            printf("Erro: parâmetros passados de forma incorreta! Desligando...\n");
             free(input_init);
-            wait(3);
-            return;
+            system("pause");
+            return 1;
         }
         else
             printf("\n");
@@ -153,6 +123,7 @@ void main()
             assoc = parametro_3;
         if (assoc == 1)
             policy = '\0';
+        
         if (code)
             if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(assoc_aux,"hash") == 0)
             {
@@ -166,9 +137,9 @@ void main()
     	free(input_init);
         if (input == NULL)
         {
-            printf("Erro: não foi possível ler o arquivo! Desligando...");
-            wait(3);
-            return;
+            printf("Erro: não foi possível ler o arquivo! Desligando...\n");
+            system("pause");
+            return 0;
         }
     }
 
