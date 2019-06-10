@@ -1,4 +1,16 @@
+#include <time.h>
 #include "hache.c"
+
+void wait(int seconds)
+{
+    int aux=0;
+    int n = seconds * 1024;
+    clock_t start_time = clock();
+    while (clock() < start_time + n)
+    {
+        aux=aux;
+    }
+}
 
 void main()
 {
@@ -58,22 +70,14 @@ void main()
         char *input_init = malloc(80*sizeof(char));
         fgets(input_init, 80, stdin);
 
-        if(strstr(input_init, "help") == input_init){
-            if(help(input_init) == 0)
-                {
-                    free(input_init);
-                    goto Cache;
-                }
-        }
-
         short int i, count_1=0, count_2=0, Error=0;
         for (i=0; input_init[i] != '\0'; i++)
         {
-            if (input_init[0] == ' ')
+            if (input_init[i] == ' ' && i == 0)
                 Error = 1;
             if (input_init[i] == ' ')
                 count_1++;
-            if (count_1 == 1 && input_init[i] == ':')
+             if (count_1 == 1 && input_init[i] == ':')
                 count_2++;
             if (count_1 == 2 && (input_init[i+1] == '\0' || input_init[i+1] == '\n'))
                 Error = 1;
@@ -84,13 +88,14 @@ void main()
         {
             printf("Erro: parâmetros passados de forma incorreta! Desligando...");
             free(input_init);
+            wait(3);
             return;
         }
         else
             printf("\n");
 
-        char *policy_aux, *nsets_aux, *bsize_aux, *assoc_aux, *input_file;
-        short int j=0, k=0;
+        char *policy_aux, *nsets_aux=NULL, *bsize_aux=NULL, *assoc_aux=NULL, *input_file;
+        short int j=0, k=0, code=1;
         policy_aux = input_init;
         for (i=0; i<strlen(input_init); i++)
         {
@@ -100,7 +105,7 @@ void main()
                 if (input_init[i+1] != ':')
                     nsets_aux = input_init+i+1;
                 else
-                    nsets_aux = NULL;
+                    code=0;
 
                 for (j=i+1; input_init[j] != ' '; j++)
                 {
@@ -110,7 +115,7 @@ void main()
                         if (input_init[j+1] != ':')
                             bsize_aux = input_init+j+1;
                         else
-                            bsize_aux = NULL;
+                            code=0;
                         k=1;
                     }
                     if (input_init[j] == ':' && k == 1)
@@ -119,7 +124,7 @@ void main()
                         if (input_init[j+1] != ' ')
                             assoc_aux = input_init+j+1;
                         else
-                            assoc_aux = NULL;
+                            code=0;
                     }
                 }
                 input_init[j] = '\0';
@@ -139,13 +144,6 @@ void main()
         if (strcmp(policy_aux,"LIFO") == 0)
             policy |= 8;
 
-        if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(assoc_aux,"hash") == 0)
-        {
-            free(input_init);
-            hache(); //Minha obra-prima!
-            goto Cache;
-        }
-
         int parametro_1=atoi(nsets_aux), parametro_2=atoi(bsize_aux), parametro_3=atoi(assoc_aux);
         if (parametro_1 != 0)
             nsets = parametro_1;
@@ -155,6 +153,13 @@ void main()
             assoc = parametro_3;
         if (assoc == 1)
             policy = '\0';
+        if (code)
+            if (strcmp(nsets_aux,"eu") == 0 && strcmp(bsize_aux,"quero") == 0 && strcmp(assoc_aux,"hash") == 0)
+            {
+                free(input_init);
+                hache();
+                goto Cache;
+            }
 
         input = fopen(input_file,"rb");
 
@@ -162,6 +167,7 @@ void main()
         if (input == NULL)
         {
             printf("Erro: não foi possível ler o arquivo! Desligando...");
+            wait(3);
             return;
         }
     }
@@ -251,7 +257,7 @@ void main()
      * O programa exibirá um relatório sobre o acesso à memória.
      */
 
-    printf("########## SIMULADOR DE CPU CACHE ##########\nDesenvolvido por: Kevin S. Pereira (KDOXG) e Frederico P. Antunes\nTrabalho de Arquitetura e Organização de Computadores 2\nUniversidade Federal de Pelotas, 2019\n\n");
+    printf("########## SIMULADOR DE CPU CACHE ##########\nTrabalho de Arquitetura e Organização de Computadores 2\nUniversidade Federal de Pelotas, 2019\n\n");
 
     printf("Tamanho da memória cache: %d bytes\n", nsets * bsize * assoc);
     printf("Mapeamento: ");
