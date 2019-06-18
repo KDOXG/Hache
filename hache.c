@@ -62,7 +62,7 @@ void hache()
         }
         if (Error != 0 || count_1 != 2 || count_2 != 2)
         {
-            printf("Erro: parâmetros passados de forma incorreta! Retornando...");
+            printf("Erro: parâmetros passados de forma incorreta! Retornando...\n\n");
             free(input_init);
             return;
         }
@@ -130,7 +130,7 @@ void hache()
         free(input_init);
         if (input == NULL)
         {
-            printf("Erro: não foi possível ler o arquivo! Retornando...");
+            printf("Erro: não foi possível ler o arquivo! Retornando...\n\n");
             return;
         }
     }
