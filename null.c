@@ -1,1 +1,0 @@
-#define object 3
